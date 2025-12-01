@@ -103,3 +103,5 @@ inputMarkList()
 listingCourse()
 listingMark()
 listingStudent()
+
+#So lazy
