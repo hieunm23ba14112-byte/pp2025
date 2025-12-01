@@ -107,7 +107,9 @@ class SystemManageMark:
                 course.showMark()
                 
                 return 0
-        
+            
+# ------------- MAIN -------------
+
 students = []
 courses = [] 
 
@@ -130,19 +132,7 @@ def inputCourseList():
             course.addStu(stu)
             
         courses.append(course)
-            
-
-inputStudentList()
-inputCourseList()
-
-system = SystemManageMark()
-
-def builtSystem():
-    for course in courses:
-        system.addNewCourse(course)
-
-builtSystem()
-
+        
 def chooseCourse():
     system.showCourseList()
     
@@ -159,6 +149,18 @@ def readMark4Course(courseId):
         marks.append(float(input(f"Mark of {stu} for {courseId} : ")))
         
     return marks
+
+def builtSystem():
+    for course in courses:
+        system.addNewCourse(course)
+           
+
+inputStudentList()
+inputCourseList()
+
+system = SystemManageMark()
+
+builtSystem()
 
 courseId = chooseCourse()
 marks = readMark4Course(courseId)
