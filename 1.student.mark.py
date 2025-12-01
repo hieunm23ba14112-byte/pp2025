@@ -74,7 +74,7 @@ def inputMarkList():
     course_id = input("Choose a course : ")
     
     while not any(course_id == course["id"] for course in courses):
-        print("Choose other ccourse!\n")
+        print("Choose other course!\n")
         course_id = input("Choose a course : ")
        
     n = int(input())
