@@ -138,11 +138,16 @@ class System:
             
         return
     
-    def showStudent(self, student):
+    def showInforStudent(self, student):
         if student == None:
             return 
         
-        print(f"- {student}")
+        print(f"- {student} attend:")
+        for cid in student.courses:
+            course = self.haveCourseId(cid)
+            print(f'    + {course}')
+        
+        print()
         
     def showAllStudentGPA(self):
         print(f"- List of Students:")
@@ -151,6 +156,8 @@ class System:
         
         for stu in self.students:
             print(f"    + {stu} have GPA = {stu.getGPA()}")
+            
+        print()
         
             
     def showAll(self):
