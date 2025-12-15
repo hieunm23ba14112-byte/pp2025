@@ -1,7 +1,7 @@
 # input.py
-from domains.student import Student
-from domains.course import Course
-from domains.mark import Mark
+from domains.Student import Student
+from domains.Course import Course
+from domains.Mark import Mark
 
 
 def load_data(path):
