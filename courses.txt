@@ -1,0 +1,2 @@
+MATH01|Mathematics
+ICT01|Infomatics
