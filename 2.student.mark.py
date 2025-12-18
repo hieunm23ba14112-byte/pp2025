@@ -133,7 +133,6 @@ class SystemManagementMark:
         print("\n===== MARK LIST =====")
 
         for m in self.__marks:
-            # tìm course name
             course_name = ""
             for c in self.__courses:
                 if c.get_id() == m.get_course_id():
@@ -144,7 +143,6 @@ class SystemManagementMark:
             print("-" * 40)
 
             for sid, score in m.get_marks().items():
-                # tìm student name
                 stu_name = ""
                 for s in self.__students:
                     if s.get_id() == sid:
