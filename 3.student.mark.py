@@ -1,5 +1,6 @@
 from datetime import datetime
 import math, numpy as np 
+import curses
 
 class Student:
     def __init__(self, sid, name, dob):
@@ -227,14 +228,108 @@ class SystemManagementMark:
     def showAll(self):
         self.showStudents()
         self.showCourses()
-        self.showMarks()        
+        self.showMarks()    
         
+    def inputAll(self):
+        self.inputStudents()
+        self.inputCourses()
+        self.inputMarks()            
+
+class CLI:
+    def __init__(self):
+        self.MENU_WIDTH = 25
+        
+        self.system = SystemManagementMark()
+        self.system.inputAll()
+        self.menu_items = [
+            "View student list",
+            "View course list",
+            "View student gpa",
+            "Help",
+            "Exit"
+        ]
+        
+        curses.wrapper(self.main)
+        
+    def init_CLI(self, stdscr):
+        curses.curs_set(0)
+        stdscr.keypad(True)
+        curses.noecho()
+        curses.cbreak()
+
+        self.h, self.w = stdscr.getmaxyx()
+        self.selected_idx = 0
+        
+        # Validate minimum terminal size
+        if self.h < 10 or self.w < 50:
+            raise Exception("Terminal too small! Minimum size: 50x10")
+
+        if curses.has_colors():
+            curses.start_color()
+            curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+            curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+            curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
+            
+        stdscr.clear()
+        
+        self.menu_win = curses.newwin(self.h, self.MENU_WIDTH, 0, 0)
+        self.content_win = curses.newwin(self.h, self.w - self.MENU_WIDTH, 0, self.MENU_WIDTH)
+            
+    def draw_menu(self, win, selected_idx):
+        win.border()
+        win.addstr(0, 2, " MENU ")
+        
+        for idx, item in enumerate(self.menu_items):
+            if idx == selected_idx:
+                win.attron(curses.A_REVERSE)
+                win.addstr(idx + 2, 2, item)
+                win.attroff(curses.A_REVERSE)
+            else:
+                win.addstr(idx + 2, 2, item)
                 
+        win.refresh()
+            
+    def draw_init_content(self):
+        pass
+            
+    def draw_help():
+        pass
+    
+    def draw_student_list():
+        pass
+    
+    def draw_course_list():
+        pass
+    
+    def draw_student_gpa_list():
+        pass
+    
+    def draw_content(self):
+        pass
+    
+    def run(self, stdscr):
+        while True:
+            self.draw_menu(self.menu_win, self.selected_idx)
+            self.draw_content()
+            
+            key = stdscr.getch()
+            
+            if key == curses.KEY_UP:
+                self.selected_idx = max(0, self.selected_idx - 1)
+                
+            elif key == curses.KEY_DOWN:
+                self.selected_idx = min(self.selected_idx + 1, len(self.menu_items) - 1 )
+                
+            elif key in (curses.KEY_ENTER, 10, 13):
+                if self.menu_items[self.selected_idx] == "Exit":
+                    break
+    
+    def main(self, stdscr):
+        self.init_CLI(stdscr)
+        
+        self.run(stdscr)
+                     
 if __name__ == "__main__":
-    system = SystemManagementMark()
-    system.readAllInput()
-    system.count_gpa_for_all_student()
-    system.showStudentGpaDescending()
-    system.showAll()
+    cli = CLI()
 
     
