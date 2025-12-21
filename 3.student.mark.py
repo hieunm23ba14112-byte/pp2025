@@ -1,6 +1,7 @@
 from datetime import datetime
 import math, numpy as np 
 import curses
+import curses.textpad
 
 class Student:
     def __init__(self, sid, name, dob):
@@ -158,57 +159,30 @@ class SystemManagementMark:
     def isCourseName(self, name):
         return name.strip() != ""
 
-    def inputStudents(self):
-        n = int(input("Number of students: "))
-        for i in range(n):
-            print(f"\nStudent {i+1}")
-            sid = input("  Id: ")
-            while not self.isStudentId(sid):
-                sid = input("  Invalid Id: ")
+    def add_student(self, sid, name, dob):
+        """Add a new student to the system"""
+        self.__students.append(Student(sid, name, dob))
+        
+    def add_course(self, cid, name):
+        """Add a new course to the system"""
+        self.__courses.append(Course(cid, name))
+        
+    def add_mark_for_student(self, sid, cid, mark_value, credit=3):
+        """Add a mark for a student in a specific course"""
+        # Find or create Mark object for the course
+        mark_obj = None
+        for m in self.__marks:
+            if m.get_course_id() == cid:
+                mark_obj = m
+                break
+        
+        if mark_obj is None:
+            mark_obj = Mark(cid)
+            self.__marks.append(mark_obj)
+        
+        mark_obj.add_mark(sid, mark_value)
+        mark_obj.add_credit(sid, credit)
 
-            name = input("  Name: ")
-            while not self.isStudentName(name):
-                name = input("  Invalid Name: ")
-
-            dob = input("  DoB (dd/mm/yyyy): ")
-            while not self.isStudentDob(dob):
-                dob = input("  Invalid DoB: ")
-
-            self.__students.append(Student(sid, name, dob))
-
-    def inputCourses(self):
-        n = int(input("Number of courses: "))
-        for i in range(n):
-            print(f"\nCourse {i+1}")
-            cid = input("  Course Id: ")
-            while not self.isCourseId(cid):
-                cid = input("  Invalid Course Id: ")
-
-            name = input("  Course Name: ")
-            while not self.isCourseName(name):
-                name = input("  Invalid Course Name: ")
-
-            self.__courses.append(Course(cid, name))
-
-    def inputMarks(self):
-        for course in self.__courses:
-            print(f"\nMarks for course {course.get_id()} - {course.get_name()}")
-            credit = int(input("  Credit: "))
-            mark = Mark(course.get_id())
-
-            for stu in self.__students:
-                while True:
-                    try:
-                        m = float(input(f"  {stu.get_id()}: "))
-                        if 0 <= m <= 10:
-                            break
-                    except ValueError:
-                        pass
-                mark.add_mark(stu.get_id(), m)
-                mark.add_credit(stu.get_id(), credit)
-
-            self.__marks.append(mark)
-            
     def write_students_to_file(self, path="students.txt"):
         with open(path, "w", encoding="utf-8") as f:
             f.write(str(len(self.__students)) + "\n")
@@ -233,149 +207,66 @@ class SystemManagementMark:
                         f.write(f"{sid} {score}\n")
                 f.write("\n")
 
-    def showStudents(self):
-        print("\n===== STUDENT LIST =====")
-        print("-" * 60)
-        print(f"{'No':>3} | {'ID':12} | {'Name':20} | {'DoB':>10}")
-        print("-" * 60)
-
-        for i, s in enumerate(self.__students, start=1):
-            print(f"{i:3} | {s.get_id():12} | {s.get_name():20} | {s.get_dob():>10}")
-
-    def showStudentsGpa(self):
-        print("\n===== STUDENT GPA LIST =====")
-        print("-" * 50)
-        print(f"{'No':<4} | {'Student ID':<12} | {'Name':<20} | {'GPA':>5}")
-        print("-" * 50)
-
-        for i, s in enumerate(self.__students, start=1):
-            print(f"{i:<4} | {s.get_id():<12} | {s.get_name():<20} | {s.get_gpa():>5.1f}")
-
-        print("-" * 50)
-
-    def showMarks(self):
-        print("\n===== MARK LIST =====")
-
-        for m in self.__marks:
-            course_name = ""
-            for c in self.__courses:
-                if c.get_id() == m.get_course_id():
-                    course_name = c.get_name()
-                    break
-
-            print(f"\nCourse: {m.get_course_id()} - {course_name}")
-            print("-" * 40)
-
-            for sid, score in m.get_marks().items():
-                stu_name = ""
-                for s in self.__students:
-                    if s.get_id() == sid:
-                        stu_name = s.get_name()
-                        break
-
-                score_str = ", ".join(f"{s:.1f}" for s in score)
-                print(f"{sid:12} | {stu_name:<20} | {score_str}")
-    
-    def showCourses(self):
-        print("\n===== COURSE LIST =====")
-        print("-" * 60)
-        print(f"{'No':>3} | {'Course ID':12} | {'Course Name':30}")
-        print("-" * 60)
-
-        for i, c in enumerate(self.__courses, start=1):
-            print(f"{i:3} | {c.get_id():12} | {c.get_name():30}")
-
-
-    def showStudentGpaDescending(self):
-        self.__students.sort(key=lambda s: s.get_gpa(), reverse=True)
-        self.showStudentsGpa()
-
-    def readAllInput(self):
-        self.inputStudents()
-        self.inputCourses()
-        self.inputMarks()
-        
-    def showAll(self):
-        self.showStudents()
-        self.showCourses()
-        self.showMarks()    
-        
-    def inputAll(self):
-        self.inputStudents()
-        self.inputCourses()
-        self.inputMarks()
-
     def read_students_from_file(self, path: str):
-        with open(path, "r", encoding="utf-8") as f:
-            lines = [line.strip() for line in f if line.strip()]
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                lines = [line.strip() for line in f if line.strip()]
 
-        n = int(lines[0])
-        idx = 1
-        for _ in range(n):
-            sid = lines[idx]; idx += 1
-            name = lines[idx]; idx += 1
-            dob = lines[idx]; idx += 1
-            self.__students.append(Student(sid, name, dob))
+            n = int(lines[0])
+            idx = 1
+            for _ in range(n):
+                sid = lines[idx]; idx += 1
+                name = lines[idx]; idx += 1
+                dob = lines[idx]; idx += 1
+                self.__students.append(Student(sid, name, dob))
+        except FileNotFoundError:
+            pass
 
     def read_courses_from_file(self, path: str):
-        with open(path, "r", encoding="utf-8") as f:
-            lines = [line.strip() for line in f if line.strip()]
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                lines = [line.strip() for line in f if line.strip()]
 
-        n = int(lines[0])
-        idx = 1
-        for _ in range(n):
-            cid = lines[idx]; idx += 1
-            name = lines[idx]; idx += 1
-            self.__courses.append(Course(cid, name))
+            n = int(lines[0])
+            idx = 1
+            for _ in range(n):
+                cid = lines[idx]; idx += 1
+                name = lines[idx]; idx += 1
+                self.__courses.append(Course(cid, name))
+        except FileNotFoundError:
+            pass
 
     def read_marks_from_file(self, path: str, default_credit: int = 1):
-        """
-        Format marks.txt:
-        MATH01
-        STU01 8.5
-        STU02 7.0
-        <Some newline>
-        ICT01
-        STU01 8.0
-        ...
-        """
-        with open(path, "r", encoding="utf-8") as f:
-            lines = [line.strip() for line in f if line.strip()]
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                lines = [line.strip() for line in f if line.strip()]
 
-        current_mark_obj = None
-        for line in lines:
-            parts = line.split()
-            if len(parts) == 1:
-                # dòng course id mới
-                cid = parts[0]
-                current_mark_obj = Mark(cid)
-                self.__marks.append(current_mark_obj)
-            elif len(parts) == 2 and current_mark_obj is not None:
-                sid, mark_str = parts
-                try:
-                    m_val = float(mark_str)
-                except ValueError:
-                    continue
-                current_mark_obj.add_mark(sid, m_val)
-                current_mark_obj.add_credit(sid, default_credit)
+            current_mark_obj = None
+            for line in lines:
+                parts = line.split()
+                if len(parts) == 1:
+                    cid = parts[0]
+                    current_mark_obj = Mark(cid)
+                    self.__marks.append(current_mark_obj)
+                elif len(parts) == 2 and current_mark_obj is not None:
+                    sid, mark_str = parts
+                    try:
+                        m_val = float(mark_str)
+                    except ValueError:
+                        continue
+                    current_mark_obj.add_mark(sid, m_val)
+                    current_mark_obj.add_credit(sid, default_credit)
+        except FileNotFoundError:
+            pass
 
     def load_from_files(self,
-                        students_path: str = "students.txt",
-                        courses_path: str = "courses.txt",
-                        marks_path: str = "mark.txt"):
+                        students_path: str = "./input_data/students.txt",
+                        courses_path: str = "./input_data/courses.txt",
+                        marks_path: str = "./input_data/mark.txt"):
         self.read_students_from_file(students_path)
         self.read_courses_from_file(courses_path)
         self.read_marks_from_file(marks_path)
 
-
-class Input:
-    def __init__(self, system: SystemManagementMark):
-        self.system = system
-
-    def input_all(self):
-        self.system.inputStudents()
-        self.system.inputCourses()
-        self.system.inputMarks()
 
 class CLI:
     def __init__(self):
@@ -389,28 +280,22 @@ class CLI:
             "Exit"
         ]
         
-        # Loading inital data
+        # Loading initial data
         self.system = SystemManagementMark()
         self.system.load_from_files()
         
         self.MENU_WIDTH = 45
         self.selected_menu = 0
-        self.active_menu = 0 
+        self.active_menu = -1
         
-        # Fake data 
-        self.students = []
-        for i in range(30):
-            self.students.append({"id": f"S{i+1:03d}", "name": f"Student {i+1}", "gpa": 3.0 + (i % 10) / 10})
-            
-        self.courses = []
-        for i in range(20):
-            self.courses.append({"id": f"CS{i+101}", "name": f"Course {i+1}"})
-            
         # Real data
+        self.update_data()
+        
+    def update_data(self):
+        """Update all data from system"""
         self.students_gpa_data = self.system.get_students_sorted_by_gpa_data()
         self.courses_data = self.system.get_courses_data()
         self.students_data = self.system.get_students_data()
-        
     
     def start(self):
         curses.wrapper(self.run)
@@ -423,7 +308,7 @@ class CLI:
         curses.set_escdelay(25)
         
         self.height, self.width = stdscr.getmaxyx()
-        if self.height < 17 or self.width < 100:
+        if self.height < 30 or self.width < 110:
             raise Exception("Terminal too small! Minimum size: 100x17")
         
         if curses.has_colors():
@@ -433,6 +318,7 @@ class CLI:
             curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
             curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_BLACK)
             curses.init_pair(5, curses.COLOR_CYAN, curses.COLOR_BLACK)
+            curses.init_pair(6, curses.COLOR_RED, curses.COLOR_BLACK)
         
         self.menu_win = curses.newwin(self.height, self.MENU_WIDTH, 0, 0)
         self.content_win = curses.newwin(
@@ -445,18 +331,21 @@ class CLI:
         self.menu_win.keypad(True)
         self.content_win.keypad(True)
         
+        self.recreate_pads()
+
+        self.student_scroll_pos = 0
+        self.course_scroll_pos = 0
+        self.gpa_scroll_pos = 0
+        
+    def recreate_pads(self):
+        """Recreate pads with updated data"""
         pad_width = max(49, self.width - self.MENU_WIDTH - 4)
         self.students_data_pad = curses.newpad(max(1, len(self.students_data)) + 1, pad_width)
         self.courses_data_pad = curses.newpad(max(1, len(self.courses_data)) + 1, pad_width)
         self.students_gpa_data_pad = curses.newpad(max(1, len(self.students_gpa_data)) + 1, pad_width)
 
-        self.student_scroll_pos = 0
-        self.course_scroll_pos = 0
-        self.gpa_scroll_pos = 0
-
         # Populate student pad
         for i, student in enumerate(self.students_data):
-            # dob is a string like "dd/mm/yyyy"
             self.students_data_pad.addstr(
                 i,
                 0,
@@ -472,7 +361,6 @@ class CLI:
             self.students_gpa_data_pad.addstr(
                 i, 0, f"{student['id']:<10} {student['name']:<25} {student['gpa']:<10.2f}"
             )
-        
     
     def draw_menu_win(self):
         self.menu_win.erase()
@@ -488,7 +376,6 @@ class CLI:
             else:
                 self.menu_win.addstr(i + 2, 2, f"  {item}")
         
-        # Add help text at bottom, accounting for border
         help_y = self.height - 3
         self.menu_win.addstr(help_y, 2, "Up/Down: Navigate", curses.color_pair(3))
         self.menu_win.addstr(help_y + 1, 2, "Enter: Open | ESC: Exit", curses.color_pair(3))
@@ -504,7 +391,6 @@ class CLI:
         if self.active_menu == -1:
             self.content_win.addstr(0, 2, " WELCOME ", curses.color_pair(4) | curses.A_BOLD)
             
-            # Welcome content
             center_y = self.height // 2 - 5
             center_x = (self.width - self.MENU_WIDTH) // 2
             
@@ -521,7 +407,7 @@ class CLI:
                 "     • Track student marks and GPA",
                 "   • View comprehensive reports",
                 "",
-                "  Select a menu item to begin!"
+                "Select a menu item to begin!"
             ]
             
             for i, line in enumerate(welcome_text):
@@ -529,14 +415,14 @@ class CLI:
                 if x_pos < 2:
                     x_pos = 2
                 try:
-                    if i < 3:  # Header
+                    if i < 3:
                         self.content_win.addstr(center_y + i, x_pos, line, curses.color_pair(4) | curses.A_BOLD)
-                    elif "Features:" in line or "Getting Started:" in line:
+                    elif "Features:" in line:
                         self.content_win.addstr(center_y + i, x_pos, line, curses.color_pair(3) | curses.A_BOLD)
                     else:
                         self.content_win.addstr(center_y + i, x_pos, line)
                 except:
-                    pass  # Ignore if text doesn't fit
+                    pass
             
             self.content_win.noutrefresh()
             return
@@ -545,29 +431,23 @@ class CLI:
         menu_option = self.menu_items[self.active_menu]
         self.content_win.addstr(0, 2, f" {menu_option.upper()} ", curses.color_pair(4) | curses.A_BOLD)
         
-        # Display different content based on selected menu
         if self.active_menu == 0:  # Add new student
             self.content_win.addstr(2, 2, "Add New Student Form", curses.A_UNDERLINE)
-            self.content_win.addstr(4, 2, "Student ID: _____________")
-            self.content_win.addstr(5, 2, "Name:       _____________")
-            self.content_win.addstr(6, 2, "GPA:        _____________")
-            self.content_win.addstr(8, 2, "[Press Enter to submit]", curses.color_pair(3))
-            self.content_win.addstr(10, 2, "Press Q to return to home", curses.color_pair(5))
+            self.content_win.addstr(4, 2, "Fill in the form below and press Enter")
+            self.content_win.addstr(6, 2, "Press Enter to start", curses.color_pair(3))
+            self.content_win.addstr(8, 2, "Press Q to return to home", curses.color_pair(5))
         
         elif self.active_menu == 1:  # Add new course
             self.content_win.addstr(2, 2, "Add New Course Form", curses.A_UNDERLINE)
-            self.content_win.addstr(4, 2, "Course ID:   _____________")
-            self.content_win.addstr(5, 2, "Course Name: _____________")
-            self.content_win.addstr(8, 2, "[Press Enter to submit]", curses.color_pair(3))
-            self.content_win.addstr(10, 2, "Press Q to return to home", curses.color_pair(5))
+            self.content_win.addstr(4, 2, "Fill in the form below and press Enter")
+            self.content_win.addstr(6, 2, "Press Enter to start", curses.color_pair(3))
+            self.content_win.addstr(8, 2, "Press Q to return to home", curses.color_pair(5))
         
         elif self.active_menu == 2:  # Add marks
             self.content_win.addstr(2, 2, "Add Marks for Course", curses.A_UNDERLINE)
-            self.content_win.addstr(4, 2, "Student ID: _____________")
-            self.content_win.addstr(5, 2, "Course ID:  _____________")
-            self.content_win.addstr(6, 2, "Mark:       _____________")
-            self.content_win.addstr(8, 2, "[Press Enter to submit]", curses.color_pair(3))
-            self.content_win.addstr(10, 2, "Press Q to return to home", curses.color_pair(5))
+            self.content_win.addstr(4, 2, "Fill in the form below and press Enter")
+            self.content_win.addstr(6, 2, "Press Enter to start", curses.color_pair(3))
+            self.content_win.addstr(8, 2, "Press Q to return to home", curses.color_pair(5))
         
         elif self.active_menu == 3:  # View student list
             self.content_win.addstr(2, 2, "Student List", curses.A_UNDERLINE)
@@ -594,7 +474,6 @@ class CLI:
             help_y = self.height - 2
             self.content_win.addstr(help_y, 2, "W/S: Scroll | Q: Back to Home", curses.color_pair(5))
             
-            # Show scroll position
             total = len(self.courses_data)
             visible = self.height - 8
             info = f"[{self.course_scroll_pos + 1}-{min(self.course_scroll_pos + visible, total)}/{total}]"
@@ -623,7 +502,6 @@ class CLI:
         self.content_win.noutrefresh()
     
     def refresh_student_pad(self):
-        """Refresh student pad with current scroll position."""
         pad_top = self.student_scroll_pos
         screen_top = 7
         screen_bottom = self.height - 3
@@ -637,7 +515,6 @@ class CLI:
         )
 
     def refresh_course_pad(self):
-        """Refresh course pad with current scroll position."""
         pad_top = self.course_scroll_pos
         screen_top = 7
         screen_bottom = self.height - 3
@@ -651,7 +528,6 @@ class CLI:
         )
 
     def refresh_gpa_pad(self):
-        """Refresh GPA pad with current scroll position."""
         pad_top = self.gpa_scroll_pos
         screen_top = 7
         screen_bottom = self.height - 3
@@ -676,6 +552,352 @@ class CLI:
             self.refresh_gpa_pad()
 
         curses.doupdate()
+    
+    def show_add_student_form(self, stdscr):
+        """Interactive form to add a new student"""
+        form_height = 19
+        form_width = 60
+        start_y = (self.height - form_height) // 2
+        start_x = self.MENU_WIDTH + (self.width - self.MENU_WIDTH - form_width) // 2
+        
+        form_win = curses.newwin(form_height, form_width, start_y, start_x)
+        form_win.keypad(True)
+        
+        fields = {
+            'id': '',
+            'name': '',
+            'dob': ''
+        }
+        
+        current_field = 0
+        field_names = ['id', 'name', 'dob']
+        error_msg = ''
+        
+        while True:
+            form_win.erase()
+            form_win.border()
+            form_win.bkgd(' ', curses.color_pair(2))
+            form_win.addstr(0, 2, " ADD NEW STUDENT ", curses.color_pair(4) | curses.A_BOLD)
+            
+            # Draw fields
+            y = 2
+            for i, fname in enumerate(field_names):
+                label = f"Student ID:" if fname == 'id' else f"Name:" if fname == 'name' else "DoB (dd/mm/yyyy):"
+                form_win.addstr(y, 2, label, curses.A_BOLD if i == current_field else 0)
+                
+                # Draw input box
+                box_y = y + 1
+                box_text = fields[fname] + '_' if i == current_field else fields[fname]
+                box_text = box_text[:40]  # Limit display length
+                
+                form_win.addstr(box_y, 2, "┌" + "─" * 52 + "┐")
+                form_win.addstr(box_y + 1, 2, "│ " + box_text.ljust(51) + "│")
+                form_win.addstr(box_y + 2, 2, "└" + "─" * 52 + "┘")
+                
+                y += 5
+            
+            # Show error message
+            if error_msg:
+                form_win.addstr(16, 2, error_msg[:55], curses.color_pair(6) | curses.A_BOLD)
+            
+            # Show instructions
+            form_win.addstr(form_height - 2, 2, "Tab: Next | Enter: Submit | ESC: Cancel", curses.color_pair(5))
+            
+            form_win.refresh()
+            
+            key = form_win.getch()
+            
+            if key == 27:  # ESC
+                return False
+            elif key == 9:  # Tab
+                current_field = (current_field + 1) % 3
+                error_msg = ''
+            elif key == curses.KEY_ENTER or key == 10 or key == 13:
+                # Validate
+                sid = fields['id'].strip()
+                name = fields['name'].strip()
+                dob = fields['dob'].strip()
+                
+                if not self.system.isStudentId(sid):
+                    error_msg = "Invalid ID! (min 5 alphanumeric chars)"
+                    current_field = 0
+                elif not self.system.isStudentName(name):
+                    error_msg = "Invalid Name! (letters and spaces only)"
+                    current_field = 1
+                elif not self.system.isStudentDob(dob):
+                    error_msg = "Invalid DoB! (use dd/mm/yyyy format)"
+                    current_field = 2
+                else:
+                    # Add student
+                    self.system.add_student(sid, name, dob)
+                    self.system.write_students_to_file()
+                    self.update_data()
+                    self.recreate_pads()
+                    
+                    # Show success message
+                    form_win.erase()
+                    form_win.border()
+                    form_win.bkgd(' ', curses.color_pair(3))
+                    form_win.addstr(form_height // 2 - 1, form_width // 2 - 10, "✓ STUDENT ADDED!", curses.color_pair(3) | curses.A_BOLD)
+                    form_win.addstr(form_height // 2 + 1, form_width // 2 - 12, "Press any key to continue")
+                    form_win.refresh()
+                    form_win.getch()
+                    return True
+            elif key == curses.KEY_BACKSPACE or key == 127:
+                fname = field_names[current_field]
+                if fields[fname]:
+                    fields[fname] = fields[fname][:-1]
+                    error_msg = ''
+            elif 32 <= key <= 126:  # Printable characters
+                fname = field_names[current_field]
+                if len(fields[fname]) < 40:
+                    fields[fname] += chr(key)
+                    error_msg = ''
+    
+    def show_add_course_form(self, stdscr):
+        """Interactive form to add a new course"""
+        form_height = 13
+        form_width = 60
+        start_y = (self.height - form_height) // 2
+        start_x = self.MENU_WIDTH + (self.width - self.MENU_WIDTH - form_width) // 2
+        
+        form_win = curses.newwin(form_height, form_width, start_y, start_x)
+        form_win.keypad(True)
+        
+        fields = {
+            'id': '',
+            'name': ''
+        }
+        
+        current_field = 0
+        field_names = ['id', 'name']
+        error_msg = ''
+        
+        while True:
+            form_win.erase()
+            form_win.border()
+            form_win.bkgd(' ', curses.color_pair(2))
+            form_win.addstr(0, 2, " ADD NEW COURSE ", curses.color_pair(4) | curses.A_BOLD)
+            
+            # Draw fields
+            y = 2
+            for i, fname in enumerate(field_names):
+                label = f"Course ID:" if fname == 'id' else "Course Name:"
+                form_win.addstr(y, 2, label, curses.A_BOLD if i == current_field else 0)
+                
+                # Draw input box
+                box_y = y + 1
+                box_text = fields[fname] + '_' if i == current_field else fields[fname]
+                box_text = box_text[:40]
+                
+                form_win.addstr(box_y, 2, "┌" + "─" * 52 + "┐")
+                form_win.addstr(box_y + 1, 2, "│ " + box_text.ljust(51) + "│")
+                form_win.addstr(box_y + 2, 2, "└" + "─" * 52 + "┘")
+                
+                y += 4
+            
+            # Show error message
+            if error_msg:
+                form_win.addstr(10, 2, error_msg[:55], curses.color_pair(6) | curses.A_BOLD)
+            
+            # Show instructions
+            form_win.addstr(form_height - 2, 2, "Tab: Next | Enter: Submit | ESC: Cancel", curses.color_pair(5))
+            
+            form_win.refresh()
+            
+            key = form_win.getch()
+            
+            if key == 27:  # ESC
+                return False
+            elif key == 9:  # Tab
+                current_field = (current_field + 1) % 2
+                error_msg = ''
+            elif key == curses.KEY_ENTER or key == 10 or key == 13:
+                # Validate
+                cid = fields['id'].strip()
+                name = fields['name'].strip()
+                
+                if not self.system.isCourseId(cid):
+                    error_msg = "Invalid Course ID! (alphanumeric only)"
+                    current_field = 0
+                elif not self.system.isCourseName(name):
+                    error_msg = "Invalid Course Name! (cannot be empty)"
+                    current_field = 1
+                else:
+                    # Add course
+                    self.system.add_course(cid, name)
+                    self.system.write_courses_to_file()
+                    self.update_data()
+                    self.recreate_pads()
+                    
+                    # Show success message
+                    form_win.erase()
+                    form_win.border()
+                    form_win.bkgd(' ', curses.color_pair(3))
+                    form_win.addstr(form_height // 2 - 1, form_width // 2 - 10, "✓ COURSE ADDED!", curses.color_pair(3) | curses.A_BOLD)
+                    form_win.addstr(form_height // 2 + 1, form_width // 2 - 12, "Press any key to continue")
+                    form_win.refresh()
+                    form_win.getch()
+                    return True
+            elif key == curses.KEY_BACKSPACE or key == 127:
+                fname = field_names[current_field]
+                if fields[fname]:
+                    fields[fname] = fields[fname][:-1]
+                    error_msg = ''
+            elif 32 <= key <= 126:
+                fname = field_names[current_field]
+                if len(fields[fname]) < 40:
+                    fields[fname] += chr(key)
+                    error_msg = ''
+    
+    def show_add_mark_form(self, stdscr):
+        """Interactive form to add marks for a student"""
+        form_height = 21
+        form_width = 60
+        start_y = (self.height - form_height) // 2
+        start_x = self.MENU_WIDTH + (self.width - self.MENU_WIDTH - form_width) // 2
+        
+        form_win = curses.newwin(form_height, form_width, start_y, start_x)
+        form_win.keypad(True)
+        
+        fields = {
+            'student_id': '',
+            'course_id': '',
+            'mark': '',
+            'credit': '3'
+        }
+        
+        current_field = 0
+        field_names = ['student_id', 'course_id', 'mark', 'credit']
+        error_msg = ''
+        
+        while True:
+            form_win.erase()
+            form_win.border()
+            form_win.bkgd(' ', curses.color_pair(2))
+            form_win.addstr(0, 2, " ADD MARK ", curses.color_pair(4) | curses.A_BOLD)
+            
+            # Draw fields
+            y = 2
+            for i, fname in enumerate(field_names):
+                if fname == 'student_id':
+                    label = "Student ID:"
+                elif fname == 'course_id':
+                    label = "Course ID:"
+                elif fname == 'mark':
+                    label = "Mark (0-10):"
+                else:
+                    label = "Credit:"
+                
+                form_win.addstr(y, 2, label, curses.A_BOLD if i == current_field else 0)
+                
+                # Draw input box
+                box_y = y + 1
+                box_text = fields[fname] + '_' if i == current_field else fields[fname]
+                box_text = box_text[:40]
+                
+                form_win.addstr(box_y, 2, "┌" + "─" * 52 + "┐")
+                form_win.addstr(box_y + 1, 2, "│ " + box_text.ljust(51) + "│")
+                form_win.addstr(box_y + 2, 2, "└" + "─" * 52 + "┘")
+                
+                y += 4
+            
+            # Show error message
+            if error_msg:
+                form_win.addstr(18, 2, error_msg[:55], curses.color_pair(6) | curses.A_BOLD)
+            
+            # Show instructions
+            form_win.addstr(form_height - 2, 2, "Tab: Next | Enter: Submit | ESC: Cancel", curses.color_pair(5))
+            
+            form_win.refresh()
+            
+            key = form_win.getch()
+            
+            if key == 27:  # ESC
+                return False
+            elif key == 9:  # Tab
+                current_field = (current_field + 1) % 4
+                error_msg = ''
+            elif key == curses.KEY_ENTER or key == 10 or key == 13:
+                # Validate
+                sid = fields['student_id'].strip()
+                cid = fields['course_id'].strip()
+                mark_str = fields['mark'].strip()
+                credit_str = fields['credit'].strip()
+                
+                # Check if student exists
+                student_exists = any(s.get_id() == sid for s in self.system.get_students())
+                if not student_exists:
+                    error_msg = "Student ID not found!"
+                    current_field = 0
+                    continue
+                
+                # Check if course exists
+                course_exists = any(c.get_id() == cid for c in self.system.get_courses())
+                if not course_exists:
+                    error_msg = "Course ID not found!"
+                    current_field = 1
+                    continue
+                
+                # Validate mark
+                try:
+                    mark_val = float(mark_str)
+                    if mark_val < 0 or mark_val > 10:
+                        error_msg = "Mark must be between 0 and 10!"
+                        current_field = 2
+                        continue
+                except ValueError:
+                    error_msg = "Invalid mark value!"
+                    current_field = 2
+                    continue
+                
+                # Validate credit
+                try:
+                    credit_val = int(credit_str)
+                    if credit_val <= 0:
+                        error_msg = "Credit must be positive!"
+                        current_field = 3
+                        continue
+                except ValueError:
+                    error_msg = "Invalid credit value!"
+                    current_field = 3
+                    continue
+                
+                # Add mark
+                self.system.add_mark_for_student(sid, cid, mark_val, credit_val)
+                self.system.write_marks_to_file()
+                self.update_data()
+                self.recreate_pads()
+                
+                # Show success message
+                form_win.erase()
+                form_win.border()
+                form_win.bkgd(' ', curses.color_pair(3))
+                form_win.addstr(form_height // 2 - 1, form_width // 2 - 8, "✓ MARK ADDED!", curses.color_pair(3) | curses.A_BOLD)
+                form_win.addstr(form_height // 2 + 1, form_width // 2 - 12, "Press any key to continue")
+                form_win.refresh()
+                form_win.getch()
+                return True
+                
+            elif key == curses.KEY_BACKSPACE or key == 127:
+                fname = field_names[current_field]
+                if fields[fname]:
+                    fields[fname] = fields[fname][:-1]
+                    error_msg = ''
+            elif 32 <= key <= 126:
+                fname = field_names[current_field]
+                char = chr(key)
+                
+                # Only allow numbers and decimal point for mark
+                if fname == 'mark' and char not in '0123456789.':
+                    continue
+                # Only allow numbers for credit
+                if fname == 'credit' and char not in '0123456789':
+                    continue
+                
+                if len(fields[fname]) < 40:
+                    fields[fname] += char
+                    error_msg = ''
     
     def run(self, stdscr):
         self.init_CLI(stdscr)
@@ -744,8 +966,26 @@ class CLI:
                     self.active_menu = -1
                     self.draw_init_CLI()
 
+            elif self.active_menu == 0 and key in (curses.KEY_ENTER, 10, 13):
+                # Show add student form
+                self.show_add_student_form(stdscr)
+                self.active_menu = -1
+                self.draw_init_CLI()
+
+            elif self.active_menu == 1 and key in (curses.KEY_ENTER, 10, 13):
+                # Show add course form
+                self.show_add_course_form(stdscr)
+                self.active_menu = -1
+                self.draw_init_CLI()
+
+            elif self.active_menu == 2 and key in (curses.KEY_ENTER, 10, 13):
+                # Show add mark form
+                self.show_add_mark_form(stdscr)
+                self.active_menu = -1
+                self.draw_init_CLI()
+
             elif self.active_menu in [0, 1, 2] and key in [ord('q'), ord('Q')]:
-                # Quay về home screen
+                # Return to home screen
                 self.active_menu = -1
                 self.draw_init_CLI()
             
@@ -775,7 +1015,4 @@ class CLI:
                         self.draw_init_CLI()
 
 if __name__ == "__main__":
-    # After run python 3.student.mark.py, you should press Enter, q to use fully this CLI.
-    # Now, three first function aren't avaleble.
-    # The option is so boring!
     CLI().start()

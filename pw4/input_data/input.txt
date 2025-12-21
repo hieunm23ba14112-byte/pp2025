@@ -1,0 +1,23 @@
+3
+STU01
+Nguyen Van A
+15/03/2000
+STU02
+Tran Thi B
+20/05/2001
+STU03
+Le Van C
+10/08/2002
+2
+CS101
+Programming Fundamentals
+MATH201
+Linear Algebra
+3
+8.5
+7.0
+9.0
+4
+7.5
+8.0
+8.5
