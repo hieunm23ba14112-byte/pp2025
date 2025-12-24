@@ -1,0 +1,21 @@
+10
+MATH01
+Mathematics
+ICT01
+Informatics
+DSA01
+Data Structures and Algorithms
+OOP01
+Object Oriented Programming
+DBI01
+Database Systems
+NET01
+Computer Networks
+OS01
+Operating Systems
+AI01
+Artificial Intelligence
+ML01
+Machine Learning
+SE01
+Software Engineering
