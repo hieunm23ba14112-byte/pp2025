@@ -40,17 +40,17 @@ class CLI:
         
     def save_data(self):
         data = {
-            "Students" : self.students_data,
+            "students" : self.students_data,
             "courses" : self.courses_data,
             "gpas" : self.students_gpa_data,
         }
         
-        with gzip.open("student.dat", "wb") as f:
+        with gzip.open("students.dat", "wb") as f:
             pickle.dump(data, f)
             
     def load_data(self):
         try:
-            with gzip.open("student.dat", "rb") as f:
+            with gzip.open("students.dat", "rb") as f:
                 data = pickle.load(f)
                 
             self.students_data = data["students"]

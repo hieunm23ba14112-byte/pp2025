@@ -1,4 +1,5 @@
 from domains.SystemManagementMark import SystemManagementMark
+from persistence import save, load
 import curses, os, pickle, gzip
 
 class CLI:
@@ -30,6 +31,7 @@ class CLI:
         for i in range(20):
             self.courses.append({"id": f"CS{i+101}", "name": f"Course {i+1}"})
             
+        self.init_data()
         self.load_data()
         
     def init_data(self):
@@ -39,26 +41,18 @@ class CLI:
         self.students_data = self.system.get_students_data()
         
     def save_data(self):
-        data = {
+        save({
             "students" : self.students_data,
             "courses" : self.courses_data,
             "gpas" : self.students_gpa_data,
-        }
-        
-        with gzip.open("students.dat", "wb") as f:
-            pickle.dump(data, f)
+        })
             
     def load_data(self):
-        try:
-            with gzip.open("students.dat", "rb") as f:
-                data = pickle.load(f)
-                
+        data = load()
+        if data:
             self.students_data = data["students"]
             self.courses_data = data["courses"]
             self.students_gpa_data = data["gpas"]
-        
-        except:
-            self.init_data()
         
     
     def start(self):
