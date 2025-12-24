@@ -1,5 +1,5 @@
 from domains.SystemManagementMark import SystemManagementMark
-import curses
+import curses, os, pickle, gzip
 
 class CLI:
     def __init__(self):
@@ -30,10 +30,35 @@ class CLI:
         for i in range(20):
             self.courses.append({"id": f"CS{i+101}", "name": f"Course {i+1}"})
             
-        # Real data
+        self.load_data()
+        
+    def init_data(self):
+        # Init data
         self.students_gpa_data = self.system.get_students_sorted_by_gpa_data()
         self.courses_data = self.system.get_courses_data()
         self.students_data = self.system.get_students_data()
+        
+    def save_data(self):
+        data = {
+            "Students" : self.students_data,
+            "courses" : self.courses_data,
+            "gpas" : self.students_gpa_data,
+        }
+        
+        with gzip.open("student.dat", "wb") as f:
+            pickle.dump(data, f)
+            
+    def load_data(self):
+        try:
+            with gzip.open("student.dat", "rb") as f:
+                data = pickle.load(f)
+                
+            self.students_data = data["students"]
+            self.courses_data = data["courses"]
+            self.students_gpa_data = data["gpas"]
+        
+        except:
+            self.init_data()
         
     
     def start(self):
@@ -387,7 +412,8 @@ class CLI:
                     curses.doupdate()
                 
                 elif key in (curses.KEY_ENTER, 10, 13):  # Enter key
-                    if self.selected_menu == 6:  # Exit option
+                    if self.selected_menu == 6:  # Exit option + compress and data
+                        self.save_data()
                         break
                     else:
                         self.active_menu = self.selected_menu

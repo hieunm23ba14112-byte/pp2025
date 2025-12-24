@@ -309,7 +309,7 @@ class CLI:
         
         self.height, self.width = stdscr.getmaxyx()
         if self.height < 30 or self.width < 110:
-            raise Exception("Terminal too small! Minimum size: 100x17")
+            raise Exception("Terminal too small! Minimum size: 110x30")
         
         if curses.has_colors():
             curses.start_color()
