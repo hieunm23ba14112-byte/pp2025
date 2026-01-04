@@ -1,0 +1,33 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Data files (runtime)
+*.dat
+*.tmp
+
+# Log files
+*.log
+
+# Input / output files
+students.txt
+courses.txt
+marks.txt
+
+# Test output
+out.txt
+
